@@ -360,7 +360,9 @@ CREATE TABLE IF NOT EXISTS public.usage_logs (
 CREATE INDEX idx_usage_user_id      ON public.usage_logs (user_id);
 CREATE INDEX idx_usage_user_created ON public.usage_logs (user_id, created_at DESC);
 CREATE INDEX idx_usage_action_type  ON public.usage_logs (action_type);
-CREATE INDEX idx_usage_user_month   ON public.usage_logs (user_id, date_trunc('month', created_at));
+CREATE INDEX idx_usage_month        ON public.usage_logs (created_at DESC);
+-- Note: monthly queries use WHERE created_at >= date_trunc('month', NOW())
+-- date_trunc() is STABLE not IMMUTABLE so cannot be used in index expressions directly
 CREATE INDEX idx_usage_reference    ON public.usage_logs (reference_id) WHERE reference_id IS NOT NULL;
 
 -- RLS
