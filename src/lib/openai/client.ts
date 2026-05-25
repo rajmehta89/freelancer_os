@@ -6,6 +6,8 @@
  * - OPENAI_API_KEY is server-only (no NEXT_PUBLIC_ prefix)
  * - Never import this in client components
  * - Never log the key or any prompt/response content
+ *
+ * Required env var: OPENAI_API_KEY (set in Vercel → Project → Settings → Environment Variables)
  */
 
 import OpenAI from "openai";
