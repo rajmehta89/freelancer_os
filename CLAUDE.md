@@ -340,3 +340,31 @@ Think beyond software:
 - **Economics** — OpenAI tokens cost money; cache where possible, prompt-engineer for brevity
 - **User psychology** — freelancers are stressed, time-poor, competitive; every second saved matters
 - **Security is not a feature** — it's the foundation, non-negotiable from day one
+
+---
+
+## Git Workflow — Commit & Push After Every Completion
+
+**Rule: Never leave completed work uncommitted.**
+
+After every milestone, feature, fix, or significant task:
+
+```bash
+git add .
+git commit -m "feat/fix/chore: <clear description of what was done>"
+git push origin main
+```
+
+### Commit Prefix Convention
+| Prefix | When |
+|--------|------|
+| `feat:` | New feature or page built |
+| `fix:` | Bug fixed |
+| `chore:` | Config, deps, refactor |
+| `docs:` | README, comments, SQL |
+| `style:` | UI-only changes |
+
+### Remote
+- Repo: `https://github.com/rajmehta89/freelancer_os.git`
+- Branch: `main`
+- Always end commit message body with: `Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>`
