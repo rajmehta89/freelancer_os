@@ -118,7 +118,7 @@ export default function BillingPage() {
             {/* Plan icon + name */}
             <div className="flex items-center gap-3 mb-5">
               <div className={`h-9 w-9 rounded-xl border flex items-center justify-center ${plan.iconBg}`}>
-                <plan.icon className={`h-4.5 w-4.5 ${plan.iconColor}`} />
+                <plan.icon className={`h-5 w-5 ${plan.iconColor}`} />
               </div>
               <div>
                 <p className="text-sm font-bold text-white">{plan.name}</p>
@@ -138,7 +138,7 @@ export default function BillingPage() {
             <div className="flex-1 space-y-2.5 mb-6">
               {plan.features.map((f) => (
                 <div key={f} className="flex items-start gap-2.5">
-                  <div className="h-4.5 w-4.5 rounded-full bg-green-500/15 border border-green-500/25 flex items-center justify-center shrink-0 mt-0.5">
+                  <div className="h-[18px] w-[18px] rounded-full bg-green-500/15 border border-green-500/25 flex items-center justify-center shrink-0 mt-0.5">
                     <Check className="h-2.5 w-2.5 text-green-400" />
                   </div>
                   <span className="text-[13px] text-gray-300">{f}</span>
@@ -146,7 +146,7 @@ export default function BillingPage() {
               ))}
               {plan.locked.map((f) => (
                 <div key={f} className="flex items-start gap-2.5 opacity-35">
-                  <div className="h-4.5 w-4.5 rounded-full border border-gray-600/40 flex items-center justify-center shrink-0 mt-0.5">
+                  <div className="h-[18px] w-[18px] rounded-full border border-gray-600/40 flex items-center justify-center shrink-0 mt-0.5">
                     <div className="h-1.5 w-1.5 rounded-full bg-gray-600" />
                   </div>
                   <span className="text-[13px] text-gray-500 line-through">{f}</span>

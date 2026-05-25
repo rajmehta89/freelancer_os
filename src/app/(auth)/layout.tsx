@@ -38,7 +38,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 group w-fit">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 shadow-lg shadow-indigo-500/25 group-hover:shadow-indigo-500/40 transition-shadow">
-              <Zap className="h-4.5 w-4.5 text-white" />
+              <Zap className="h-5 w-5 text-white" />
             </div>
             <span className="text-white font-bold text-xl tracking-tight">
               Freelancer<span className="text-indigo-400">OS</span>
