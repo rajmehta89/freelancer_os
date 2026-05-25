@@ -1,20 +1,38 @@
-import { Badge } from "@/components/ui/badge";
-import { MessageSquare } from "lucide-react";
+/**
+ * /reply — Reply Assistant page
+ * Server component: loads plan info, passes to client.
+ */
 
-export default function ReplyPage() {
+import { redirect }      from "next/navigation";
+import { createClient }  from "@/lib/supabase/server";
+import { ReplyClient }   from "./ReplyClient";
+
+export const metadata = { title: "Reply Assistant — FreelancerOS" };
+
+export default async function ReplyPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("plan, replies_used")
+    .eq("id", user.id)
+    .single();
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-extrabold text-white">Reply Assistant</h1>
-          <p className="text-gray-400 mt-1">Smart replies for every client situation</p>
-        </div>
-        <Badge variant="indigo">Milestone 4</Badge>
+      <div>
+        <h1 className="text-2xl font-extrabold text-white">Reply Assistant</h1>
+        <p className="text-gray-400 mt-1">
+          Handle lowball offers, follow-ups, and negotiations like a pro
+        </p>
       </div>
-      <div className="rounded-2xl border border-white/5 bg-gray-900/40 p-16 text-center">
-        <MessageSquare className="h-12 w-12 text-gray-700 mx-auto mb-4" />
-        <p className="text-gray-500">AI Reply Assistant — coming in Milestone 4</p>
-      </div>
+
+      <ReplyClient
+        plan={        (profile?.plan as "free" | "pro" | "agency") ?? "free"}
+        repliesUsed={ profile?.replies_used ?? 0}
+      />
     </div>
   );
 }
