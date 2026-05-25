@@ -2,14 +2,6 @@
  * POST /api/generate/proposal
  * Streams an AI-generated proposal to the client.
  *
- * Flow:
- * 1. Auth check (Supabase session cookie)
- * 2. Rate limit check (free plan: 5 proposals/month)
- * 3. Validate input with Zod
- * 4. Fetch user preferences for personalisation
- * 5. Stream OpenAI response
- * 6. After stream: save to DB + log usage + increment counter
- *
  * Security:
  * - Never log job post content or generated text
  * - Never expose OpenAI key to client
@@ -89,9 +81,21 @@ export async function POST(req: NextRequest) {
     experienceYears: prefs?.experience_years ?? undefined,
   });
 
+  // ── 6. Initialise OpenAI — fail fast with clear error ──────
+  let openai: ReturnType<typeof getOpenAI>;
+  try {
+    openai = getOpenAI();
+  } catch (err) {
+    log.error(FILE, "OpenAI client not configured", err);
+    return NextResponse.json(
+      { error: "AI service is not configured. Please add your OPENAI_API_KEY to Vercel environment variables." },
+      { status: 500 }
+    );
+  }
+
   log.info(FILE, "Starting proposal stream", { style, platform });
 
-  // ── 6. Stream OpenAI → Client ──────────────────────────────
+  // ── 7. Stream OpenAI → Client ──────────────────────────────
   let fullText     = "";
   let tokensInput  = 0;
   let tokensOutput = 0;
@@ -99,14 +103,13 @@ export async function POST(req: NextRequest) {
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        const openai     = getOpenAI();
         const completion = await openai.chat.completions.create({
-          model:        MODEL,
+          model:          MODEL,
           messages,
-          stream:       true,
+          stream:         true,
           stream_options: { include_usage: true },
-          max_tokens:   900,
-          temperature:  0.72,
+          max_tokens:     900,
+          temperature:    0.72,
         });
 
         for await (const chunk of completion) {
@@ -121,7 +124,7 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        // ── 7. Save to DB after stream completes ──────────────
+        // ── 8. Save to DB after stream completes ──────────────
         const generationMs = Date.now() - startMs;
 
         const { data: saved } = await supabase
@@ -141,7 +144,7 @@ export async function POST(req: NextRequest) {
           .select("id")
           .single();
 
-        // ── 8. Log usage (service role only) ──────────────────
+        // ── 9. Log usage (service role only) ──────────────────
         if (saved?.id) {
           await supabaseAdmin.from("usage_logs").insert({
             user_id:        user.id,
@@ -155,17 +158,17 @@ export async function POST(req: NextRequest) {
           });
         }
 
-        // ── 9. Increment proposals_used counter ────────────────
+        // ── 10. Increment proposals_used counter ───────────────
         await supabase
           .from("profiles")
           .update({ proposals_used: (profile?.proposals_used ?? 0) + 1 })
           .eq("id", user.id);
 
         log.ai(FILE, "Proposal stream complete", {
-          model:             MODEL,
-          promptTokens:      tokensInput,
-          completionTokens:  tokensOutput,
-          ms:                generationMs,
+          model:            MODEL,
+          promptTokens:     tokensInput,
+          completionTokens: tokensOutput,
+          ms:               generationMs,
         });
 
         controller.close();
@@ -178,8 +181,8 @@ export async function POST(req: NextRequest) {
 
   return new Response(stream, {
     headers: {
-      "Content-Type":     "text/plain; charset=utf-8",
-      "Cache-Control":    "no-cache, no-store",
+      "Content-Type":      "text/plain; charset=utf-8",
+      "Cache-Control":     "no-cache, no-store",
       "X-Accel-Buffering": "no",
     },
   });

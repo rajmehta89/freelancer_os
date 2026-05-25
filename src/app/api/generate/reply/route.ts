@@ -17,9 +17,9 @@ import { replyGenerateSchema }       from "@/lib/validations";
 import { log }                       from "@/lib/logger";
 import type { ReplyType }            from "@/types";
 
-const FILE        = "api/generate/reply";
-const MODEL       = "gpt-4o-mini";
-const FREE_LIMIT  = 3;
+const FILE       = "api/generate/reply";
+const MODEL      = "gpt-4o-mini";
+const FREE_LIMIT = 3;
 
 export async function POST(req: NextRequest) {
   const startMs = Date.now();
@@ -71,6 +71,18 @@ export async function POST(req: NextRequest) {
     context:   context ?? undefined,
   });
 
+  // ── Initialise OpenAI — fail fast with clear error ─────────
+  let openai: ReturnType<typeof getOpenAI>;
+  try {
+    openai = getOpenAI();
+  } catch (err) {
+    log.error(FILE, "OpenAI client not configured", err);
+    return NextResponse.json(
+      { error: "AI service is not configured. Please add your OPENAI_API_KEY to Vercel environment variables." },
+      { status: 500 }
+    );
+  }
+
   log.info(FILE, "Starting reply stream", { replyType });
 
   let fullText     = "";
@@ -80,7 +92,6 @@ export async function POST(req: NextRequest) {
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        const openai     = getOpenAI();
         const completion = await openai.chat.completions.create({
           model:          MODEL,
           messages,

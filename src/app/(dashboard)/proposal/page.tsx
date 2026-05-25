@@ -6,6 +6,7 @@
 import { redirect }        from "next/navigation";
 import { createClient }    from "@/lib/supabase/server";
 import { ProposalClient }  from "./ProposalClient";
+import { FileText, Sparkles } from "lucide-react";
 import type { ProposalStyle, Platform } from "@/types";
 
 export const metadata = { title: "Proposal Generator — FreelancerOS" };
@@ -29,20 +30,30 @@ export default async function ProposalPage() {
   ]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-4xl">
       {/* Page header */}
-      <div>
-        <h1 className="text-2xl font-extrabold text-white">Proposal Generator</h1>
-        <p className="text-gray-400 mt-1">
-          Paste a job post → get a winning, personalised proposal in seconds
-        </p>
+      <div className="flex items-start gap-4">
+        <div className="h-11 w-11 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0 mt-0.5">
+          <FileText className="h-5 w-5 text-indigo-400" />
+        </div>
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-0.5">
+            <h1 className="text-2xl font-extrabold text-white tracking-tight">Proposal Generator</h1>
+            <span className="flex items-center gap-1 text-[11px] font-medium text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 rounded-full px-2.5 py-0.5">
+              <Sparkles className="h-3 w-3" /> AI
+            </span>
+          </div>
+          <p className="text-gray-400 text-sm">
+            Paste a job post → get a winning, personalised proposal in seconds
+          </p>
+        </div>
       </div>
 
       <ProposalClient
-        plan={             (profile?.plan as "free" | "pro" | "agency") ?? "free"}
-        proposalsUsed={    profile?.proposals_used ?? 0}
-        defaultStyle={     (prefs?.default_proposal_style as ProposalStyle) ?? "concise"}
-        defaultPlatform={  (prefs?.default_platform        as Platform)      ?? "upwork"}
+        plan={            (profile?.plan as "free" | "pro" | "agency") ?? "free"}
+        proposalsUsed={   profile?.proposals_used ?? 0}
+        defaultStyle={    (prefs?.default_proposal_style as ProposalStyle) ?? "concise"}
+        defaultPlatform={ (prefs?.default_platform        as Platform)      ?? "upwork"}
       />
     </div>
   );

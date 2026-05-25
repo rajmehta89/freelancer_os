@@ -6,6 +6,7 @@
 import { redirect }       from "next/navigation";
 import { createClient }   from "@/lib/supabase/server";
 import { SettingsClient } from "./SettingsClient";
+import { Settings } from "lucide-react";
 import type { UserProfile, UserPreferences } from "@/types";
 
 export const metadata = { title: "Settings — FreelancerOS" };
@@ -32,11 +33,17 @@ export default async function SettingsPage() {
 
   return (
     <div className="space-y-6 max-w-3xl">
-      <div>
-        <h1 className="text-2xl font-extrabold text-white">Settings</h1>
-        <p className="text-gray-400 mt-1">
-          Manage your profile, AI preferences, and notifications
-        </p>
+      {/* Header */}
+      <div className="flex items-start gap-4">
+        <div className="h-11 w-11 rounded-xl bg-gray-800/60 border border-white/[0.07] flex items-center justify-center shrink-0 mt-0.5">
+          <Settings className="h-5 w-5 text-gray-400" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-extrabold text-white tracking-tight">Settings</h1>
+          <p className="text-gray-400 text-sm mt-0.5">
+            Manage your profile, AI preferences, and notifications
+          </p>
+        </div>
       </div>
 
       <SettingsClient
