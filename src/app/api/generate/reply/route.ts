@@ -27,16 +27,14 @@ export async function POST(req: NextRequest) {
   // ── Auth ───────────────────────────────────────────────────
   const supabase = await createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
-
   if (authError || !user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   // ── Validate ───────────────────────────────────────────────
   let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
+  try { body = await req.json(); }
+  catch {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
@@ -47,7 +45,6 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
   }
-
   const { clientMessage, replyType, context } = parsed.data;
 
   // ── Rate Limit ─────────────────────────────────────────────
@@ -59,7 +56,7 @@ export async function POST(req: NextRequest) {
 
   if (profile?.plan === "free" && (profile.replies_used ?? 0) >= FREE_LIMIT) {
     return NextResponse.json(
-      { error: "Monthly reply limit reached. Upgrade to Pro for unlimited replies." },
+      { error: "Monthly limit reached. Upgrade to Pro for unlimited replies." },
       { status: 429 }
     );
   }
@@ -71,14 +68,14 @@ export async function POST(req: NextRequest) {
     context:   context ?? undefined,
   });
 
-  // ── Initialise OpenAI — fail fast with clear error ─────────
+  // ── Init OpenAI — fail fast before stream starts ───────────
   let openai: ReturnType<typeof getOpenAI>;
   try {
     openai = getOpenAI();
   } catch (err) {
-    log.error(FILE, "OpenAI client not configured", err);
+    log.error(FILE, "OpenAI not configured", err);
     return NextResponse.json(
-      { error: "AI service is not configured. Please add your OPENAI_API_KEY to Vercel environment variables." },
+      { error: "OpenAI API key is not configured. Add OPENAI_API_KEY in Vercel → Project → Settings → Environment Variables, then redeploy." },
       { status: 500 }
     );
   }
@@ -113,56 +110,65 @@ export async function POST(req: NextRequest) {
           }
         }
 
+        // ── Close stream immediately — user gets text now ─────
+        controller.close();
+
+        // ── DB writes: fire-and-forget, non-fatal ─────────────
         const generationMs = Date.now() - startMs;
 
-        // ── Save to DB ─────────────────────────────────────────
-        const { data: saved } = await supabase
-          .from("client_replies")
-          .insert({
-            user_id:         user.id,
-            client_message:  clientMessage,
-            reply_type:      replyType,
-            context:         context ?? null,
-            generated_reply: fullText,
-            model:           MODEL,
-            tokens_input:    tokensInput  || null,
-            tokens_output:   tokensOutput || null,
-            generation_ms:   generationMs,
-          })
-          .select("id")
-          .single();
+        let savedId: string | null = null;
+        try {
+          const { data: saved } = await supabase
+            .from("client_replies")
+            .insert({
+              user_id:         user.id,
+              client_message:  clientMessage,
+              reply_type:      replyType,
+              context:         context ?? null,
+              generated_reply: fullText,
+              model:           MODEL,
+              tokens_input:    tokensInput  || null,
+              tokens_output:   tokensOutput || null,
+              generation_ms:   generationMs,
+            })
+            .select("id")
+            .single();
+          savedId = saved?.id ?? null;
+        } catch (e) {
+          log.error(FILE, "Reply save failed (non-fatal)", e);
+        }
 
-        // ── Log Usage ──────────────────────────────────────────
-        if (saved?.id) {
-          await supabaseAdmin.from("usage_logs").insert({
+        // Usage log — non-fatal
+        if (savedId) {
+          supabaseAdmin.from("usage_logs").insert({
             user_id:        user.id,
             action_type:    "reply_generated",
             model:          MODEL,
             tokens_input:   tokensInput  || null,
             tokens_output:  tokensOutput || null,
             latency_ms:     generationMs,
-            reference_id:   saved.id,
+            reference_id:   savedId,
             reference_type: "client_replies",
-          });
+          }).then(null, (e) => log.warn(FILE, "Usage log failed (non-fatal)", e));
         }
 
-        // ── Increment Counter ──────────────────────────────────
-        await supabase
+        // Counter increment — non-fatal
+        supabase
           .from("profiles")
           .update({ replies_used: (profile?.replies_used ?? 0) + 1 })
-          .eq("id", user.id);
+          .eq("id", user.id)
+          .then(null, (e) => log.warn(FILE, "Counter increment failed (non-fatal)", e));
 
-        log.ai(FILE, "Reply stream complete", {
+        log.ai(FILE, "Reply complete", {
           model:            MODEL,
           promptTokens:     tokensInput,
           completionTokens: tokensOutput,
           ms:               generationMs,
         });
 
-        controller.close();
       } catch (err) {
-        log.error(FILE, "Reply stream failed", err);
-        controller.error(err);
+        log.error(FILE, "Reply stream error", err);
+        try { controller.error(err); } catch { /* already closed */ }
       }
     },
   });

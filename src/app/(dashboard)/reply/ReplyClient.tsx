@@ -11,40 +11,39 @@ import { Button }            from "@/components/ui/button";
 import { cn }                from "@/lib/utils";
 import {
   Sparkles, Copy, RefreshCw, Check,
-  AlertCircle, ChevronDown,
+  AlertCircle, ChevronDown, KeyRound,
 } from "lucide-react";
 import type { ReplyType } from "@/types";
 
-// ── Reply type options ────────────────────────────────────────
 const REPLY_TYPES: Array<{
   id:    ReplyType;
   label: string;
   desc:  string;
   emoji: string;
 }> = [
-  { id: "lowball",     label: "Lowball Offer",    desc: "Client offered below your rate",    emoji: "💰" },
-  { id: "followup",    label: "Follow-Up",         desc: "No response in 3+ days",            emoji: "📬" },
-  { id: "negotiation", label: "Negotiation",       desc: "Scope or price push-back",          emoji: "🤝" },
-  { id: "delay",       label: "Project Delay",     desc: "Client keeps pushing start date",   emoji: "⏳" },
-  { id: "upsell",      label: "Upsell",            desc: "Offer additional services",         emoji: "🚀" },
-  { id: "general",     label: "General Reply",     desc: "Any other client message",          emoji: "💬" },
+  { id: "lowball",     label: "Lowball Offer",  desc: "Client offered below your rate",  emoji: "💰" },
+  { id: "followup",    label: "Follow-Up",       desc: "No response in 3+ days",          emoji: "📬" },
+  { id: "negotiation", label: "Negotiation",     desc: "Scope or price push-back",        emoji: "🤝" },
+  { id: "delay",       label: "Project Delay",   desc: "Client keeps pushing start date", emoji: "⏳" },
+  { id: "upsell",      label: "Upsell",          desc: "Offer additional services",       emoji: "🚀" },
+  { id: "general",     label: "General Reply",   desc: "Any other client message",        emoji: "💬" },
 ];
 
 interface ReplyClientProps {
-  plan:       "free" | "pro" | "agency";
+  plan:        "free" | "pro" | "agency";
   repliesUsed: number;
 }
 
 type GenState = "idle" | "loading" | "complete" | "error";
 
 export function ReplyClient({ plan, repliesUsed }: ReplyClientProps) {
-  const [replyType,      setReplyType]      = useState<ReplyType>("general");
-  const [clientMessage,  setClientMessage]  = useState("");
-  const [context,        setContext]        = useState("");
-  const [output,         setOutput]         = useState("");
-  const [genState,       setGenState]       = useState<GenState>("idle");
-  const [error,          setError]          = useState("");
-  const [copied,         setCopied]         = useState(false);
+  const [replyType,     setReplyType]     = useState<ReplyType>("general");
+  const [clientMessage, setClientMessage] = useState("");
+  const [context,       setContext]       = useState("");
+  const [output,        setOutput]        = useState("");
+  const [genState,      setGenState]      = useState<GenState>("idle");
+  const [error,         setError]         = useState("");
+  const [copied,        setCopied]        = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   const FREE_LIMIT = 3;
@@ -52,6 +51,10 @@ export function ReplyClient({ plan, repliesUsed }: ReplyClientProps) {
   const isLoading  = genState === "loading";
   const hasOutput  = output.length > 0;
   const wordCount  = output.split(/\s+/).filter(Boolean).length;
+
+  const isKeyError = error.toLowerCase().includes("api key") ||
+                     error.toLowerCase().includes("not configured") ||
+                     error.toLowerCase().includes("openai");
 
   async function generate() {
     if (!clientMessage.trim() || isLoading || isAtLimit) return;
@@ -72,8 +75,8 @@ export function ReplyClient({ plan, repliesUsed }: ReplyClientProps) {
       });
 
       if (!res.ok) {
-        const data = await res.json().catch(() => ({ error: "Generation failed" }));
-        throw new Error((data as { error?: string }).error ?? "Generation failed");
+        const data = await res.json().catch(() => ({ error: "Generation failed. Please try again." }));
+        throw new Error((data as { error?: string }).error ?? "Generation failed. Please try again.");
       }
 
       const reader  = res.body!.getReader();
@@ -100,28 +103,27 @@ export function ReplyClient({ plan, repliesUsed }: ReplyClientProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
 
       {/* Limit banner */}
       {isAtLimit && (
-        <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 flex items-center justify-between">
+        <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 flex items-center justify-between gap-3">
           <p className="text-sm text-amber-400">
             You&apos;ve used all {FREE_LIMIT} free replies this month.
           </p>
-          <Link href="/billing">
+          <Link href="/billing" className="shrink-0">
             <Button size="sm" variant="secondary">Upgrade to Pro</Button>
           </Link>
         </div>
       )}
 
       {/* Input card */}
-      <div className="rounded-2xl border border-white/5 bg-gray-900/40 p-6 space-y-5">
+      <div className="rounded-2xl border border-white/[0.07] bg-gray-900/40 p-6 space-y-5">
 
-        {/* Reply type */}
+        {/* Reply type — desktop grid */}
         <div className="space-y-2">
           <label className="block text-sm font-medium text-gray-300">What kind of reply?</label>
 
-          {/* Desktop: grid; mobile: select */}
           <div className="hidden sm:grid grid-cols-3 gap-2">
             {REPLY_TYPES.map((t) => (
               <button
@@ -133,7 +135,7 @@ export function ReplyClient({ plan, repliesUsed }: ReplyClientProps) {
                   "flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition-all duration-150",
                   replyType === t.id
                     ? "border-indigo-500/60 bg-indigo-600/15 ring-1 ring-indigo-500/30"
-                    : "border-white/5 bg-gray-950/30 hover:border-white/10"
+                    : "border-white/[0.05] bg-gray-950/30 hover:border-white/10"
                 )}
               >
                 <span className={cn(
@@ -153,7 +155,7 @@ export function ReplyClient({ plan, repliesUsed }: ReplyClientProps) {
               value={replyType}
               onChange={(e) => setReplyType(e.target.value as ReplyType)}
               disabled={isLoading}
-              className="w-full appearance-none rounded-xl border border-white/8 bg-gray-950/60 px-4 py-3 pr-10 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full appearance-none rounded-xl border border-white/[0.08] bg-gray-950/60 px-4 py-3 pr-10 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               {REPLY_TYPES.map((t) => (
                 <option key={t.id} value={t.id}>{t.emoji} {t.label}</option>
@@ -177,7 +179,7 @@ export function ReplyClient({ plan, repliesUsed }: ReplyClientProps) {
             maxLength={3000}
             className={cn(
               "w-full rounded-xl border bg-gray-950/60 px-4 py-3 text-sm text-white placeholder-gray-600 resize-none",
-              "transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 border-white/8 hover:border-white/15",
+              "transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 border-white/[0.08] hover:border-white/[0.15]",
               "disabled:opacity-50 disabled:cursor-not-allowed"
             )}
           />
@@ -198,7 +200,7 @@ export function ReplyClient({ plan, repliesUsed }: ReplyClientProps) {
             maxLength={500}
             className={cn(
               "w-full rounded-xl border bg-gray-950/60 px-4 py-3 text-sm text-white placeholder-gray-600 resize-none",
-              "transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 border-white/8 hover:border-white/15",
+              "transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 border-white/[0.08] hover:border-white/[0.15]",
               "disabled:opacity-50 disabled:cursor-not-allowed"
             )}
           />
@@ -218,7 +220,7 @@ export function ReplyClient({ plan, repliesUsed }: ReplyClientProps) {
             onClick={generate}
             disabled={!clientMessage.trim() || isLoading || isAtLimit}
             size="lg"
-            className="ml-auto shrink-0"
+            className="ml-auto shrink-0 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 shadow-lg shadow-purple-500/20"
           >
             <Sparkles className="h-4 w-4" />
             {isLoading ? "Writing Reply…" : "Generate Reply"}
@@ -228,16 +230,16 @@ export function ReplyClient({ plan, repliesUsed }: ReplyClientProps) {
 
       {/* Output */}
       {(hasOutput || isLoading) && (
-        <div className="rounded-2xl border border-white/5 bg-gray-900/40 overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
+        <div className="rounded-2xl border border-white/[0.07] bg-gray-900/40 overflow-hidden">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.07]">
             <div className="flex items-center gap-3">
               <span className="text-sm font-semibold text-white">Generated Reply</span>
               {genState === "complete" && (
                 <span className="text-xs text-gray-500 tabular-nums">{wordCount} words</span>
               )}
               {isLoading && (
-                <span className="flex items-center gap-1.5 text-xs text-indigo-400">
-                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-indigo-400 animate-pulse" />
+                <span className="flex items-center gap-1.5 text-xs text-purple-400">
+                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-purple-400 animate-pulse" />
                   Writing…
                 </span>
               )}
@@ -260,7 +262,7 @@ export function ReplyClient({ plan, repliesUsed }: ReplyClientProps) {
             <p className="text-sm text-gray-200 whitespace-pre-wrap leading-relaxed">
               {output}
               {isLoading && (
-                <span className="inline-block w-0.5 h-[1.1em] bg-indigo-400 ml-0.5 animate-pulse align-text-bottom" />
+                <span className="inline-block w-0.5 h-[1.1em] bg-purple-400 ml-0.5 animate-pulse align-text-bottom" />
               )}
             </p>
           </div>
@@ -269,11 +271,33 @@ export function ReplyClient({ plan, repliesUsed }: ReplyClientProps) {
 
       {/* Error */}
       {genState === "error" && (
-        <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 flex items-start gap-2 text-sm text-red-400">
-          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-          <div>
-            <p className="font-medium">Generation failed</p>
-            <p className="text-xs mt-0.5 text-red-400/80">{error}</p>
+        <div className={cn(
+          "rounded-xl border px-5 py-4 text-sm",
+          isKeyError
+            ? "border-amber-500/25 bg-amber-500/10"
+            : "border-red-500/20 bg-red-500/10"
+        )}>
+          <div className="flex items-start gap-3">
+            {isKeyError
+              ? <KeyRound    className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
+              : <AlertCircle className="h-5 w-5 text-red-400   shrink-0 mt-0.5" />
+            }
+            <div>
+              <p className={cn("font-semibold mb-1", isKeyError ? "text-amber-300" : "text-red-400")}>
+                {isKeyError ? "OpenAI API key not configured" : "Generation failed"}
+              </p>
+              <p className={cn("text-xs leading-relaxed", isKeyError ? "text-amber-400/80" : "text-red-400/80")}>
+                {error}
+              </p>
+              {isKeyError && (
+                <div className="mt-3 space-y-1 text-xs text-amber-400/70">
+                  <p>To fix:</p>
+                  <p>1. Get your key from <strong className="text-amber-300">platform.openai.com/api-keys</strong></p>
+                  <p>2. Add <strong className="text-amber-300">OPENAI_API_KEY</strong> in Vercel → Project → Settings → Environment Variables</p>
+                  <p>3. Redeploy from Vercel dashboard</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
