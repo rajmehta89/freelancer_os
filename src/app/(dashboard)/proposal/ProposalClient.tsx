@@ -2,7 +2,7 @@
 
 /**
  * ProposalClient — interactive proposal generator UI.
- * Streams output from /api/generate/proposal using fetch + ReadableStream.
+ * Calls /api/generate/proposal (JSON response, non-streaming).
  */
 
 import { useState, useRef } from "react";
@@ -89,20 +89,16 @@ export function ProposalClient({
         signal:  abortRef.current.signal,
       });
 
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({ error: "Generation failed. Please try again." }));
-        throw new Error((data as { error?: string }).error ?? "Generation failed. Please try again.");
+      // Always parse JSON — both success and error responses are JSON
+      const data = await res.json().catch(() => ({
+        error: `Server returned ${res.status}. Please try again.`,
+      })) as { proposal?: string; error?: string };
+
+      if (!res.ok || !data.proposal) {
+        throw new Error(data.error ?? "Generation failed. Please try again.");
       }
 
-      const reader  = res.body!.getReader();
-      const decoder = new TextDecoder();
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        setOutput((prev) => prev + decoder.decode(value, { stream: true }));
-      }
-
+      setOutput(data.proposal);
       setGenState("complete");
     } catch (err: unknown) {
       if (err instanceof Error && err.name === "AbortError") return;
@@ -262,7 +258,7 @@ export function ProposalClient({
               {isLoading && (
                 <span className="flex items-center gap-1.5 text-xs text-indigo-400">
                   <span className="inline-block h-1.5 w-1.5 rounded-full bg-indigo-400 animate-pulse" />
-                  Writing…
+                  Generating…
                 </span>
               )}
             </div>
@@ -283,12 +279,19 @@ export function ProposalClient({
           </div>
 
           <div className="px-6 py-5">
-            <p className="text-sm text-gray-200 whitespace-pre-wrap leading-relaxed">
-              {output}
-              {isLoading && (
-                <span className="inline-block w-0.5 h-[1.1em] bg-indigo-400 ml-0.5 animate-pulse align-text-bottom" />
-              )}
-            </p>
+            {isLoading ? (
+              <div className="space-y-2 animate-pulse">
+                <div className="h-3 bg-gray-700 rounded w-full" />
+                <div className="h-3 bg-gray-700 rounded w-5/6" />
+                <div className="h-3 bg-gray-700 rounded w-4/6" />
+                <div className="h-3 bg-gray-700 rounded w-full" />
+                <div className="h-3 bg-gray-700 rounded w-3/4" />
+              </div>
+            ) : (
+              <p className="text-sm text-gray-200 whitespace-pre-wrap leading-relaxed">
+                {output}
+              </p>
+            )}
           </div>
 
           {genState === "complete" && wordCount > 80 && (
