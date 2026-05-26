@@ -8,6 +8,7 @@
  * - Never log the key or any prompt/response content
  *
  * Required env var: OPENAI_API_KEY (set in Vercel → Project → Settings → Environment Variables)
+ * Key must start with "sk-" — NOT "sk_live" (that is a Stripe key)
  */
 
 import OpenAI from "openai";
@@ -19,10 +20,22 @@ export function getOpenAI(): OpenAI {
 
   const apiKey = process.env.OPENAI_API_KEY;
 
-  if (!apiKey || apiKey === "your_openai_key") {
+  // Missing or placeholder
+  if (!apiKey || apiKey === "your_openai_key" || apiKey.trim() === "") {
     throw new Error(
-      "[openai/client.ts] OPENAI_API_KEY is not configured. " +
-        "Add it to .env.local → OPENAI_API_KEY=sk-..."
+      "OPENAI_API_KEY is not set. " +
+      "Go to platform.openai.com/api-keys → create key → " +
+      "paste it in Vercel → Project → Settings → Environment Variables → Redeploy."
+    );
+  }
+
+  // Wrong key pasted (e.g. Stripe sk_live_... or Razorpay rzp_live_...)
+  if (!apiKey.startsWith("sk-")) {
+    throw new Error(
+      `OPENAI_API_KEY looks wrong — it starts with "${apiKey.slice(0, 10)}..." ` +
+      "but OpenAI keys always start with \"sk-\". " +
+      "You may have pasted the wrong key (e.g. a Stripe or Razorpay key). " +
+      "Get your real key at platform.openai.com/api-keys."
     );
   }
 
