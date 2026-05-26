@@ -21,8 +21,7 @@ const FILE       = "api/generate/reply";
 const MODEL      = "gpt-4o-mini";
 const FREE_LIMIT = 3;
 
-export const dynamic     = "force-dynamic";
-export const maxDuration = 60;
+export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   const startMs = Date.now();
@@ -188,9 +187,10 @@ export async function POST(req: NextRequest) {
   });
 
   } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
     log.error(FILE, "Unhandled route error", err);
     return NextResponse.json(
-      { error: "An unexpected server error occurred. Please try again in a moment." },
+      { error: `Server error: ${message}` },
       { status: 500 }
     );
   }

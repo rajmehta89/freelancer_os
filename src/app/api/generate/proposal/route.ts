@@ -22,9 +22,7 @@ const MODEL      = "gpt-4o-mini";
 const FREE_LIMIT = 5;
 
 // Required: prevents static caching of a cookie-based auth route
-export const dynamic     = "force-dynamic";
-// Required: Vercel serverless default is 10s — AI generation needs more
-export const maxDuration = 60;
+export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   const startMs = Date.now();
@@ -206,9 +204,10 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     // Top-level safety net: catches any unexpected throw (network errors,
     // Supabase SDK exceptions, etc.) so Next.js never returns a raw HTML 500.
+    const message = err instanceof Error ? err.message : String(err);
     log.error(FILE, "Unhandled route error", err);
     return NextResponse.json(
-      { error: "An unexpected server error occurred. Please try again in a moment." },
+      { error: `Server error: ${message}` },
       { status: 500 }
     );
   }
