@@ -40,7 +40,8 @@ const REPLY_TYPE_COLOR: Record<string, string> = {
 
 export default async function HistoryPage() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: authData } = await supabase.auth.getUser();
+  const user = authData?.user ?? null;
   if (!user) redirect("/login");
 
   const [{ data: proposals }, { data: replies }] = await Promise.all([

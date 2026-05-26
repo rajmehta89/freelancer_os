@@ -13,7 +13,8 @@ export const metadata = { title: "Settings — FreelancerOS" };
 
 export default async function SettingsPage() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: authData } = await supabase.auth.getUser();
+  const user = authData?.user ?? null;
   if (!user) redirect("/login");
 
   const [{ data: profile }, { data: prefs }] = await Promise.all([

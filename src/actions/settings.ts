@@ -20,7 +20,8 @@ const FILE = "actions/settings.ts";
 
 export async function saveSettings(formData: FormData): Promise<ActionResult> {
   const supabase = await createClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  const user = authData?.user ?? null;
 
   if (authError || !user) {
     return { success: false, error: "Unauthorized" };

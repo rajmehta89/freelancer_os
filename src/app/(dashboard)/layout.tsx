@@ -10,7 +10,8 @@ export default async function DashboardLayout({
   const supabase = await createClient();
 
   // Get authenticated user — server-side, secure
-  const { data: { user }, error } = await supabase.auth.getUser();
+  const { data: authData, error } = await supabase.auth.getUser();
+  const user = authData?.user ?? null;
   if (error || !user) redirect("/login");
 
   // Fetch profile for sidebar

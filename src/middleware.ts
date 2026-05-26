@@ -54,7 +54,8 @@ export async function middleware(request: NextRequest) {
 
   // IMPORTANT: getUser() refreshes the session token if expired
   // Do NOT remove this — it keeps users logged in
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: authData } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+  const user = authData?.user ?? null;
 
   const { pathname } = request.nextUrl;
 

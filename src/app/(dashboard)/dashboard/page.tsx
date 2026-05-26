@@ -49,7 +49,8 @@ const QUICK_ACTIONS = [
 
 export default async function DashboardPage() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: authData } = await supabase.auth.getUser();
+  const user = authData?.user ?? null;
   if (!user) redirect("/login");
 
   const { data: profile } = await supabase

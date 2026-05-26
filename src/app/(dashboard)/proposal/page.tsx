@@ -13,7 +13,8 @@ export const metadata = { title: "Proposal Generator — FreelancerOS" };
 
 export default async function ProposalPage() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: authData } = await supabase.auth.getUser();
+  const user = authData?.user ?? null;
   if (!user) redirect("/login");
 
   const [{ data: profile }, { data: prefs }] = await Promise.all([
