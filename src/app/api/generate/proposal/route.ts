@@ -21,12 +21,20 @@ const FILE       = "api/generate/proposal";
 const MODEL      = "gpt-4o-mini";
 const FREE_LIMIT = 5;
 
+// Required: prevents static caching of a cookie-based auth route
+export const dynamic     = "force-dynamic";
+// Required: Vercel serverless default is 10s — AI generation needs more
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest) {
   const startMs = Date.now();
 
+  try {
   // ── 1. Auth ────────────────────────────────────────────────
   const supabase = await createClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const authResult = await supabase.auth.getUser();
+  const user       = authResult.data?.user;
+  const authError  = authResult.error;
   if (authError || !user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -194,4 +202,14 @@ export async function POST(req: NextRequest) {
       "X-Accel-Buffering": "no",
     },
   });
+
+  } catch (err) {
+    // Top-level safety net: catches any unexpected throw (network errors,
+    // Supabase SDK exceptions, etc.) so Next.js never returns a raw HTML 500.
+    log.error(FILE, "Unhandled route error", err);
+    return NextResponse.json(
+      { error: "An unexpected server error occurred. Please try again in a moment." },
+      { status: 500 }
+    );
+  }
 }

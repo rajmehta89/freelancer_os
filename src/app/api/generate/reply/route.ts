@@ -21,12 +21,18 @@ const FILE       = "api/generate/reply";
 const MODEL      = "gpt-4o-mini";
 const FREE_LIMIT = 3;
 
+export const dynamic     = "force-dynamic";
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest) {
   const startMs = Date.now();
 
+  try {
   // ── Auth ───────────────────────────────────────────────────
-  const supabase = await createClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const supabase  = await createClient();
+  const authResult = await supabase.auth.getUser();
+  const user       = authResult.data?.user;
+  const authError  = authResult.error;
   if (authError || !user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -180,4 +186,12 @@ export async function POST(req: NextRequest) {
       "X-Accel-Buffering": "no",
     },
   });
+
+  } catch (err) {
+    log.error(FILE, "Unhandled route error", err);
+    return NextResponse.json(
+      { error: "An unexpected server error occurred. Please try again in a moment." },
+      { status: 500 }
+    );
+  }
 }
